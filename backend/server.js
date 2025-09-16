@@ -92,32 +92,26 @@ app.use("/api/auth", authRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/questions", questionRoutes);
 
-// AI Routes - Fixed (use POST instead of app.use)
+// AI Routes
 app.post("/api/ai/generate-questions", protect, generateInterviewQuestions);
 app.post("/api/ai/generate-explanation", protect, generateConceptExplanation);
 
 // Serve uploads folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// 404 handler for unmatched routes
-app.use("*", (req, res) => {
-    res.status(404).json({
-        message: `Route ${req.originalUrl} not found`,
-        status: "error",
-        frontend: "https://interview-prep-frontend-g8fd.onrender.com",
-        availableEndpoints: [
-            "GET /",
-            "GET /health",
-            "GET /api/test-ai",
-            "POST /api/auth/login",
-            "POST /api/auth/register",
-            "GET /api/sessions",
-            "POST /api/sessions",
-            "GET /api/questions",
-            "POST /api/ai/generate-questions",
-            "POST /api/ai/generate-explanation"
-        ]
-    });
+// ✅ Serve frontend build (adjust path if needed)
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+// ✅ Catch-all for React Router (non-API routes)
+app.get("*", (req, res) => {
+    if (!req.originalUrl.startsWith("/api")) {
+        res.sendFile(path.join(__dirname, "../frontend/dist", "index.html"));
+    } else {
+        res.status(404).json({
+            message: `API Route ${req.originalUrl} not found`,
+            status: "error",
+        });
+    }
 });
 
 // Global error handler
