@@ -1,33 +1,71 @@
 require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const sessionRoutes = require("./routes/sessionRoutes");
-const questionRoutes = require("./routes/questionRoutes")
+const questionRoutes = require("./routes/questionRoutes");
 const { protect } = require("./middlewares/authMiddleware");
 const { generateInterviewQuestions, generateConceptExplanation } = require("./controllers/aiController");
 
-
 const app = express();
 
-// Middleware to handle CORS
-app.use(
-    cors({
-        origin: ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "*"],
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-        credentials: true
-    })
-);
-
+// Connect to Database
 connectDB();
 
-// Middleware
-app.use(express.json());
+// CORS Configuration - Updated with your frontend URL
+const corsOptions = {
+    origin: [
+        "http://localhost:3000", 
+        "http://localhost:5173", 
+        "http://localhost:5174", 
+        "http://127.0.0.1:3000", 
+        "http://127.0.0.1:5173", 
+        "http://127.0.0.1:5174",
+        "https://interview-prep-frontend-g8fd.onrender.com", // Your frontend URL
+        process.env.CORS_ORIGIN // Additional environment variable if needed
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+};
 
-// Temporary test route for debugging AI errors
+app.use(cors(corsOptions));
+
+// Middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ROOT ROUTE - Fixes "Cannot GET /" error
+app.get("/", (req, res) => {
+    res.json({
+        message: "Interview Prep AI Backend API",
+        status: "running",
+        version: "1.0.0",
+        frontend: "https://interview-prep-frontend-g8fd.onrender.com",
+        endpoints: {
+            auth: "/api/auth",
+            sessions: "/api/sessions", 
+            questions: "/api/questions",
+            ai: "/api/ai"
+        },
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Health check route
+app.get("/health", (req, res) => {
+    res.json({
+        status: "healthy",
+        database: "connected",
+        server: "running",
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Test route for AI debugging
 app.get("/api/test-ai", (req, res) => {
     console.log("--- TRIGGERING AI TEST ROUTE ---");
     const mockReq = {
@@ -49,18 +87,56 @@ app.get("/api/test-ai", (req, res) => {
     generateInterviewQuestions(mockReq, mockRes);
 });
 
-// Routes
+// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/questions", questionRoutes);
 
-app.use("/api/ai/generate-questions", protect, generateInterviewQuestions);
-app.use("/api/ai/generate-explanation", protect, generateConceptExplanation);
-
+// AI Routes - Fixed (use POST instead of app.use)
+app.post("/api/ai/generate-questions", protect, generateInterviewQuestions);
+app.post("/api/ai/generate-explanation", protect, generateConceptExplanation);
 
 // Serve uploads folder
-app.use("/uploads", express.static(path.join(__dirname,"uploads"), {}));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Start Server 
+// 404 handler for unmatched routes
+app.use("*", (req, res) => {
+    res.status(404).json({
+        message: `Route ${req.originalUrl} not found`,
+        status: "error",
+        frontend: "https://interview-prep-frontend-g8fd.onrender.com",
+        availableEndpoints: [
+            "GET /",
+            "GET /health",
+            "GET /api/test-ai",
+            "POST /api/auth/login",
+            "POST /api/auth/register",
+            "GET /api/sessions",
+            "POST /api/sessions",
+            "GET /api/questions",
+            "POST /api/ai/generate-questions",
+            "POST /api/ai/generate-explanation"
+        ]
+    });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error("Global Error Handler:", err.stack);
+    res.status(err.status || 500).json({
+        message: err.message || "Something went wrong!",
+        status: "error",
+        error: process.env.NODE_ENV === "production" ? "Internal Server Error" : err.stack,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Start Server
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 Frontend URL: https://interview-prep-frontend-g8fd.onrender.com`);
+    console.log(`📡 CORS Origins:`, corsOptions.origin);
+    console.log(`⏰ Started at: ${new Date().toISOString()}`);
+});
