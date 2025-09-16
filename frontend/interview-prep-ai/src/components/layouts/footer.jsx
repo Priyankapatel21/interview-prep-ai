@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'; // ← Add this import
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFacebookSquare, faInstagram, faLinkedin } from '@fortawesome/free-brands-svg-icons';
 
@@ -22,10 +23,10 @@ const Footer = () => {
         {/* Brand Info */}
         <div>&copy;InterviewPrep. All Rights Reserved.</div>
 
-        {/* Links */}
+        {/* Links - FIXED: Using Link instead of a href */}
         <div className="flex gap-3">
-          <a href="/privacy" className="hover:underline">Privacy Policy</a>
-          <a href="/terms" className="hover:underline">Terms</a>
+          <Link to="/privacy" className="hover:underline">Privacy Policy</Link>
+          <Link to="/terms" className="hover:underline">Terms</Link>
         </div>
       </div>
     </footer>

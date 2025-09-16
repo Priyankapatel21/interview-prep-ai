@@ -99,20 +99,8 @@ app.post("/api/ai/generate-explanation", protect, generateConceptExplanation);
 // Serve uploads folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ✅ Serve frontend build (adjust path if needed)
-app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
-// ✅ Catch-all for React Router (non-API routes)
-app.get("*", (req, res) => {
-    if (!req.originalUrl.startsWith("/api")) {
-        res.sendFile(path.join(__dirname, "../frontend/dist", "index.html"));
-    } else {
-        res.status(404).json({
-            message: `API Route ${req.originalUrl} not found`,
-            status: "error",
-        });
-    }
-});
+// REMOVED: Frontend serving code (not needed for separate deployments)
+// Your frontend is deployed separately as a static site
 
 // Global error handler
 app.use((err, req, res, next) => {
